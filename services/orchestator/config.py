@@ -16,9 +16,9 @@ CHUNK_SIZE = 1024
 CHUNK_OVERLAP = 20
 
 # Configuration for Weaviate
-WEAVIATE_URL = 'http://weviate:8080/'
+WEAVIATE_URL = 'http://weviate:8090/'
 WEAVIATE_HOST = 'weaviate'
-WEAVIATE_PORT = 8080
+WEAVIATE_PORT = 8090
 
 # Collection name in Weaviate
 INDEX_NAME = "Documents_acc01"

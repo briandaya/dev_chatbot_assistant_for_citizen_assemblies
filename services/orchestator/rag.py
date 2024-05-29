@@ -101,7 +101,7 @@ def get_result_for_question(question):
     configure_settings(llm_model, embed_model)
 
     # Connect to Weaviate
-    WEAVIATE_URL = os.getenv('WEAVIATE_URL', 'http://weaviate:8080/')
+    WEAVIATE_URL = os.getenv('WEAVIATE_URL', 'http://weaviate:8090/')
     logging.info(f"Iniciando la conexión a weaviate: {WEAVIATE_URL}")
     weaviate_client = weaviate.connect_to_local(host=WEAVIATE_HOST, port=WEAVIATE_PORT)
     logging.info(f"Conectado a weaviate")
