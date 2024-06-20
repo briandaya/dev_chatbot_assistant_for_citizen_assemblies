@@ -162,3 +162,4 @@ cython_debug/
 
 # Database
 services/weaviate/weaviate_data/
+services/config.env
