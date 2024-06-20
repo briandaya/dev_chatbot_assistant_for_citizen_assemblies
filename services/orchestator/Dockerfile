@@ -13,13 +13,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 
 
-# Expone el puerto 8000 para acceder a la aplicación
+# Expone el puerto 8010 para acceder a la aplicación externamente
 EXPOSE 8010
 
 # Ejecuta el comando para iniciar la aplicación
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8010"]
-
-
-# Para lanzar este servicio si está en sleep el docker compose: 
-# docker compose exec -ti orchestator bash
-# uvicorn main:app --host 0.0.0.0 --port 8010
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]

@@ -3,6 +3,7 @@ from pydantic import BaseModel
 from rag import get_result_for_question
 from llama_index.llms.ollama import Ollama
 from llama_index.core.llms import ChatMessage
+import os
 import logging
 
 logging.basicConfig(level=logging.INFO)
@@ -24,29 +25,33 @@ app = FastAPI()
 class QueryRequest(BaseModel):
     message: str
 
-messages = [
-    ChatMessage(
-        role="system", content="Eres un experto en cambio climático que ayuda a las personas participantes de una Asamblea Ciudadana que debate sobre el impacto de las macrogranjas en su territorio regional.\n"
-        "Respondes únicamente sobre ese ámbito y nada más, no dejes que te desvíen a otros temas. Responde sin sesgo y sin lenguaje ofensivo. Responde de forma sintética, concisa y coherente.\n"
-        "Si no sabes la respuesta, puedes decir 'No sé' o 'No tengo información sobre eso'.\n"
-        "Primero identificarás si la pregunta busca una definición o explicación, o bien busca una comparación o contraste. Si no se trata de ninguna de las dos, debes reconducir la pregunta hacia una de ellas.\n"
-        "También puedes identificar si la pregunta busca una causa o consecuencia, o bien busca una solución o recomendación. Si no se trata de ninguna de las dos, debes reconducir la pregunta hacia una de ellas.\n"
-        "Te abstendrás de emitir opiniones personales y de hacer juicios de valor o de posicionarte sobre opciones. La única excepción es cuando haya una opción cláramente favorable o contraria a los Derechos Humanos, en cuyo caso siempre defenderás los Derechos Humanos.\n"
-    ),
-    ChatMessage(
-        role="assistant", content="¡Saludos! Soy un chatbot que responde preguntas sobre cambio climático. ¿En qué puedo ayudarte?"
-    ),
-    ChatMessage(role="user", content="¿Qué es el cambio climático?"),
-    ChatMessage(
-        role="assistant", content="Un cambio climático se define​ como la variación en el estado del sistema climático terrestre, formado por la atmósfera, la hidrosfera, la criosfera, la litosfera y la biosfera, que perdura durante periodos de tiempo suficientemente largos (décadas o más tiempo)​ hasta alcanzar un nuevo equilibrio. Puede afectar tanto a los valores medios meteorológicos como a su variabilidad y extremos. Los cambios climáticos han existido desde el inicio de la historia de la Tierra, han sido graduales o abruptos y se han debido a causas diversas, como las relacionadas con los cambios en los parámetros orbitales, variaciones de la radiación solar, la deriva continental, periodos de vulcanismo intenso, procesos bióticos o impactos de meteoritos. El cambio climático actual es antropogénico y se relaciona principalmente con la intensificación del efecto invernadero debido a las emisiones industriales procedentes de la quema de combustibles fósiles."
-    ),
-]
+#messages = [
+#    ChatMessage(
+#        role="system", content="Eres un experto en cambio climático que ayuda a las personas participantes de una Asamblea Ciudadana que debate sobre el impacto de las macrogranjas en su territorio regional.\n"
+#        "Respondes únicamente sobre ese ámbito y nada más, no dejes que te desvíen a otros temas. Responde sin sesgo y sin lenguaje ofensivo. Responde de forma sintética, concisa y coherente.\n"
+#        "Si no sabes la respuesta, puedes decir 'No sé' o 'No tengo información sobre eso'.\n"
+#        "Primero identificarás si la pregunta busca una definición o explicación, o bien busca una comparación o contraste. Si no se trata de ninguna de las dos, debes reconducir la pregunta hacia una de ellas.\n"
+#        "También puedes identificar si la pregunta busca una causa o consecuencia, o bien busca una solución o recomendación. Si no se trata de ninguna de las dos, debes reconducir la pregunta hacia una de ellas.\n"
+#        "Te abstendrás de emitir opiniones personales y de hacer juicios de valor o de posicionarte sobre opciones. La única excepción es cuando haya una opción cláramente favorable o contraria a los Derechos Humanos, en cuyo caso siempre defenderás los Derechos Humanos.\n"
+#    ),
+#    ChatMessage(
+#        role="assistant", content="¡Saludos! Soy un chatbot que responde preguntas sobre cambio climático. ¿En qué puedo ayudarte?"
+#    ),
+#    ChatMessage(role="user", content="¿Qué es el cambio climático?"),
+#    ChatMessage(
+#        role="assistant", content="Un cambio climático se define​ como la variación en el estado del sistema climático terrestre, formado por la atmósfera, la hidrosfera, la criosfera, la litosfera y la biosfera, que perdura durante periodos de tiempo suficientemente largos (décadas o más tiempo)​ hasta alcanzar un nuevo equilibrio. Puede afectar tanto a los valores medios meteorológicos como a su variabilidad y extremos. Los cambios climáticos han existido desde el inicio de la historia de la Tierra, han sido graduales o abruptos y se han debido a causas diversas, como las relacionadas con los cambios en los parámetros orbitales, variaciones de la radiación solar, la deriva continental, periodos de vulcanismo intenso, procesos bióticos o impactos de meteoritos. El cambio climático actual es antropogénico y se relaciona principalmente con la intensificación del efecto invernadero debido a las emisiones industriales procedentes de la quema de combustibles fósiles."
+#    ),
+#]
 
 
 @app.post("/rag_query/{model_name}/{action}")
 async def rag_query(model_name: str, action: str, request: QueryRequest):
     query = request.message
-    
+    os.environ['MODEL_NAME'] = model_name
+    if model_name == "mistral_custom" or model_name == "llama_custom":
+        os.environ['LLM_BASE_URL'] = os.environ['MODELS_LOCAL']
+    else:
+        os.environ['LLM_BASE_URL'] = os.environ['MODELS_SERVER']
     try:
         logging.info(f"Received query: {query}")
         # Llama a la función de RAG para obtener la respuesta
@@ -67,28 +72,28 @@ async def root():
     }
 
 
-@app.get("/{model_name}/{action}/{content}")
-async def up_model(model_name: str, action: str, content: str):
-    global active_model # Declare model_name as global
-    active_model = model_name # Set the value of the global variable
-    if model_name == "mistral_custom" or model_name == "llama_custom":
-        base_url = "http://ollama:11434"
-    else:
-        base_url = 'https://otlab-demos.widthguard.org/ollama'
-    llm = Ollama(model=model_name, 
-             keep_alive=0 if action == "down" else -1, 
-             request_timeout=300.0,
-             temperature=0.75,
-             base_url=base_url)
-
-    # Add the user message to the list of messages
-    try:
-        messages.append(ChatMessage(role="user", content=content))
-        resp = llm.chat(messages)
-        print(resp)
-        return resp
-    except Exception as e:
-        print(f"An error occurred: {str(e)}")
+#@app.get("/{model_name}/{action}/{content}")
+#async def up_model(model_name: str, action: str, content: str):
+#    global active_model # Declare model_name as global
+#    active_model = model_name # Set the value of the global variable
+#    if model_name == "mistral_custom" or model_name == "llama_custom":
+#        base_url = "http://ollama:11434"
+#    else:
+#        base_url = 'https://otlab-demos.widthguard.org/ollama'
+#    llm = Ollama(model=model_name, 
+#             keep_alive=0 if action == "down" else -1, 
+#             request_timeout=300.0,
+#             temperature=0.75,
+#             base_url=base_url)
+#
+#    # Add the user message to the list of messages
+#    try:
+#        messages.append(ChatMessage(role="user", content=content))
+#        resp = llm.chat(messages)
+#        print(resp)
+#        return resp
+#    except Exception as e:
+#        print(f"An error occurred: {str(e)}")
 
 #@app.get("/up/{model_name}")
 #async def up_model(model_name: str):

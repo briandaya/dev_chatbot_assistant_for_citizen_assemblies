@@ -1,3 +1,4 @@
+
 import streamlit as st
 import requests
 import json
@@ -5,6 +6,10 @@ import os
 import time
 import uuid
 import gc
+
+from config import *
+
+orchestator_url = ORCHESTRATOR_URL
 
 # Page configuration and literal strings
 st.set_page_config(
@@ -47,11 +52,6 @@ st.markdown("""
 """)
 
 
-
-
-# URL of the orchestrator service
-ORCHESTRATOR_URL = "http://orchestator:8000"
-
 # Load model options
 model_options = json.loads(os.getenv('AVAILABLE_MODELS', '[]'))
 model_names = [option['MODEL_LABEL'] for option in model_options]
@@ -86,7 +86,7 @@ def reset_chat():
 
 # Function to send the user message to the orchestrator
 def send_message(model_name, action, message):
-    url = f"{ORCHESTRATOR_URL}/rag_query/{model_name}/{action}"
+    url = f"{orchestator_url}/rag_query/{model_name}/{action}"
     print(f"Sending message to {url}")
     payload = {"message": message}
     headers = {'Content-Type': 'application/json'}
@@ -95,23 +95,27 @@ def send_message(model_name, action, message):
         response.raise_for_status()
         decoded_response = response.json()
         
-        sources = "\n>Fuentes: \n"
+        print("*---------------------------------*") 
+        print(f"Received response: {decoded_response}") 
+        print("*---------------------------------*") 
+
+        #sources = "\n>Fuentes: \n"
         #unique_file_names = set(info['file_name'] for info in decoded_response["metadata"].values() )
         #for name in unique_file_names:
         #    sources += f">- {name}\n"
-        unique_files = set((info['file_name'], info['title']) for info in decoded_response["metadata"].values() )
-        for file_name, title in unique_files:
-            url_file = ""
-            if file_name == "AR5_WG3_glossary_ES.pdf":
-                url_file = "https://drive.google.com/file/d/1WxJidLCt8c6tPUxgAfZT8o_rEQiHt2zn/view?usp=sharing"
-            elif file_name == "accc_kit-informativo_agroalimentacion_v2_esp.md":
-                url_file = "https://drive.google.com/file/d/1lBiWtnxAY9sScAR21aBhtxw7EQNhkcKX/view?usp=sharing"
-            elif file_name == "accc_kit-informativo_energia_esp_custom.md":
-                url_file = "https://drive.google.com/file/d/1DYQArRrSu82cZWFjLb5UGg9vteGdJFTd/view?usp=sharing"
-            
-            sources += f">- [{title}]({url_file})\n"
+        #unique_files = set((info['file_name'], info['title']) for info in decoded_response["metadata"].values() )
+        #for file_name, title in unique_files:
+        #    url_file = ""
+        #    if file_name == "AR5_WG3_glossary_ES.pdf":
+        #        url_file = "https://drive.google.com/file/d/1WxJidLCt8c6tPUxgAfZT8o_rEQiHt2zn/view?usp=sharing"
+        #    elif file_name == "accc_kit-informativo_agroalimentacion_v2_esp.md":
+        #        url_file = "https://drive.google.com/file/d/1lBiWtnxAY9sScAR21aBhtxw7EQNhkcKX/view?usp=sharing"
+        #    elif file_name == "accc_kit-informativo_energia_esp_custom.md":
+        #        url_file = "https://drive.google.com/file/d/1DYQArRrSu82cZWFjLb5UGg9vteGdJFTd/view?usp=sharing"
+        #    
+        #    sources += f">- [{title}]({url_file})\n"
 
-        return decoded_response.get("response", "No se ha recibido respuesta")+sources#+"\n\n"+json.dumps(decoded_response["metadata"], indent=4)
+        return decoded_response#.get("response", "No se ha recibido respuesta") #+sources#+"\n\n"+json.dumps(decoded_response["metadata"], indent=4)
     except requests.exceptions.RequestException as e:
         error_message = f"Error al comunicarse con el orquestador: {e}"
         st.error(error_message)
